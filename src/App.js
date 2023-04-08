@@ -1,15 +1,16 @@
 import React from 'react';
-import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
-
+import {  Switch, Route } from 'react-router-dom';
+import WorkflowList from './components/WorkflowList';
+// import WorkflowDesigner from './components/WorkflowDesigner';
 
 const App = () => {
   return (
-    <Router>
+    
       <Switch>
-        <Route exact path="/" />
-        <Route exact path="/workflow/:id"  />
+        <Route exact path="/" component={WorkflowList}  />
+        {/* <Route exact path="/workflow/:id"  /> */}
       </Switch>
-    </Router>
+   
   );
 };
 
