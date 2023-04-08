@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './tableStyles.css';
+import '../WorkFlowList/tableStyles.css';
 import { Link } from 'react-router-dom';
 
 function WorkflowList() {

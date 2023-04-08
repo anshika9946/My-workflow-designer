@@ -1,6 +1,6 @@
 import React from 'react';
 import {  Switch, Route } from 'react-router-dom';
-import WorkflowList from './components/WorkflowList';
+import WorkflowList from './components/WorkFlowList/WorkflowList';
 // import WorkflowDesigner from './components/WorkflowDesigner';
 
 const App = () => {
