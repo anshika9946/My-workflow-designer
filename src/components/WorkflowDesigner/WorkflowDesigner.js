@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import ReactFlow, { addEdge, removeElements } from 'react-flow-renderer';
-
-
+import React, { useCallback,useEffect, useState } from 'react';
+import ReactFlow, {  addEdge, applyEdgeChanges, applyNodeChanges } from 'react-flow-renderer';
 
 const WorkflowDesigner = ({ match }) => {
   const [workflowData, setWorkflowData] = useState(null);
   const [modules, setModules] = useState([]);
-  const [elements, setElements] = useState([]);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
 
   useEffect(() => {
     // Load workflow data and modules on mount
@@ -14,7 +13,7 @@ const WorkflowDesigner = ({ match }) => {
       .then((response) => response.json())
       .then((data) => {
         setWorkflowData(data);
-        setElements([
+        setNodes([
           {
             id: 'input',
             type: 'input',
@@ -26,7 +25,7 @@ const WorkflowDesigner = ({ match }) => {
         ]);
       });
 
-    fetch(`https://64307b10d4518cfb0e50e555.mockapi.io/modules?page=1&limit=5`)
+    fetch(`https://64307b10d4518cfb0e50e555.mockapi.io/workflow?page=1&limit=5`)
       .then((response) => response.json())
       .then((data) => setModules(data));
   }, [match.params.id]);
@@ -43,34 +42,70 @@ const WorkflowDesigner = ({ match }) => {
       x: event.clientX - event.target.getBoundingClientRect().left,
       y: event.clientY - event.target.getBoundingClientRect().top,
     };
-    const element = {
+    const node = {
       id: module.id,
       data: { label: module.name },
       type: 'default',
       position,
     };
-    setElements((e) => addEdge({ ...element, source: 'input', target: element.id }, e));
+    setNodes((n) => [...n, node]);
+    setEdges((e) => [
+      ...e,
+      {
+        id: `e${nodes.length}-${module.id}`,
+        source: 'input',
+        target: module.id,
+        animated: true,
+      },
+    ]);
   };
-
-  const handleDelete = (event, element) => {
-    event.preventDefault();
-    setElements((e) => removeElements([element], e));
-  };
+  const onNodesChange = useCallback(
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    [setNodes]
+  );
+  const onEdgesChange = useCallback(
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [setEdges]
+  );
+  const onConnect = useCallback(
+    (connection) => setEdges((eds) => addEdge(connection, eds)),
+    [setEdges]
+  );
+  // const handleDelete = (event, element) => {
+  //   event.preventDefault();
+  //   if (element.type === 'node') {
+  //     setNodes((n) => n.filter((node) => node.id !== element.id));
+  //     setEdges((e) => e.filter((edge) => edge.source !== element.id && edge.target !== element.id));
+  //   } else {
+  //     setEdges((e) => e.filter((edge) => edge.id !== element.id));
+  //   }
+  // };
 
   const handleValidate = (event, element) => {
     event.preventDefault();
-    const valid = elements.some((e) => e.target === element.id);
-    setElements((e) =>
-      e.map((el) => {
-        if (el.id === element.id) {
-          el.style = {
-            border: `2px solid ${valid ? 'green' : 'red'}`,
-            ...el.style,
-          };
-        }
-        return el;
-      })
-    );
+    const valid = edges.some((e) => e.target === element.id);
+    if (element.type === 'node') {
+      setNodes((n) =>
+        n.map((node) => {
+          if (node.id === element.id) {
+            node.style = {
+              border: `2px solid ${valid ? 'green' : 'red'}`,
+              ...node.style,
+            };
+          }
+          return node;
+        })
+      );
+    } else {
+      setEdges((e) =>
+        e.map((edge) => {
+          if (edge.id === element.id) {
+            edge.animated = valid;
+          }
+          return edge;
+        })
+      );
+    }
   };
 
   if (!workflowData) {
@@ -80,14 +115,17 @@ const WorkflowDesigner = ({ match }) => {
   return (
     <div onDragOver={handleDragOver} onDrop={handleDrop}>
       <h1>{workflowData.name}</h1>
-      <ReactFlow elements={elements} onElementsRemove={handleDelete} onNodeDragStop={handleValidate} />
-      <div>
+      <ReactFlow elements={[...nodes, ...edges]}  nodes={nodes}
+      edges={edges} onConnect={onConnect} onEdgesChange={onEdgesChange} onNodesChange={onNodesChange} onNodeDragStop={handleValidate}/>
+
+
+
         {modules.map((module) => (
           <div key={module.id} draggable onDragStart={(event) => event.dataTransfer.setData('application/module', JSON.stringify(module))}>
             {module.name}
           </div>
         ))}
-      </div>
+   
     </div>
   );
 };
